@@ -7,7 +7,7 @@ import erc20Abi from "../contract/erc20.abi.json"
 
 const ERC20_DECIMALS = 18
 const cUSDContractAddress = "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1"
-const tasksContractAddress = "0xaec06101F64B79233BA16f29f2557196F0d062E2"
+const tasksContractAddress = "0x6A0D68Fc6A9830074B42c8C62a453320Ba198F1C"
 
 let kit
 let contract
@@ -94,9 +94,11 @@ const annuled = 3
   function renderTasks() {
   	document.getElementById("listings").innerHTML = ""
   	tasks.forEach((_task) => {
+      console.log(_task)
   		const newDiv = document.createElement("div")
   		newDiv.className = "col-md-6"
   		newDiv.innerHTML = taskTemplate(_task)
+      console.log(taskTemplate(_task), newDiv.innerHTML, "yeah")
   		document.getElementById("listings").appendChild(newDiv)
   	})
   }
@@ -109,7 +111,6 @@ const annuled = 3
   }
 
   function taskTemplate(_task) {
-
     let buttons = []
     buttons[active] = `<a class="btn  btn-primary" data-action="lock" id="${_task.index}">
                     Lock in task for ${new BigNumber(_task.lockcost).shiftedBy(-ERC20_DECIMALS).toFixed(2)} cUSD </a>`
@@ -126,12 +127,10 @@ const annuled = 3
     let isowner = _task.owner === useraddress                   
   
   	return `
-      <div class="card mb-4">
+    <div class="card mb-4">
       <div class="card-body text-left p-4 position-relative">
-        <!-- <div class="translate-middle-y position-absolute top-0"> -->
-        
+        <!-- <div class="translate-middle-y position-absolute top-0"> -->    
         ${identiconTemplate(_task.owner)}
-  
         <!-- </div> -->
         <h5 class="card-title">Task Description</h5>
         <p class="card-text mb-1">
@@ -140,13 +139,12 @@ const annuled = 3
         <h5 class="card-title "> Expected Deliverables</h5>
         <p>${_task.proof} </p>
         <p> Task Prize: ${new BigNumber(_task.prize).shiftedBy(-ERC20_DECIMALS).toFixed(2)}cUSD <br>Contact Info: ${_task.contact} 
-        <br> Lock Duration: ${_task.duration / 3600} hour(s)
+        <br> Minimum Lock Duration: ${_task.duration / 3600} hour(s)
           ${isowner? ownerstatus: ""}
         </p>
         <div class="">
-          ${!isowner? buttons[_task.state]: ""}
-          ${isowner? completebtn + annulbtn + unlocktask: ""}
-
+        ${!isowner? buttons[_task.state]: ""}
+          ${isowner ? _task.state == 0? annulbtn: completebtn + unlocktask: ""}
         </div>
       </div>
     </div>
@@ -251,8 +249,8 @@ const annuled = 3
   } 
 
   else if (e.target.dataset.action == "complete"){
+    const index = e.target.id
     console.log(index)
-  
     try {
         const result = await contract.methods
           .completeTask(index)
@@ -264,8 +262,41 @@ const annuled = 3
       }
     catch (error) {
         notification(`${error}.`)
+    } 
+  }
+
+  else if (e.target.dataset.action == "unlock"){
+    const index = e.target.id
+    try {
+        const result = await contract.methods
+          .setBackToActive(index)
+          .send({from: kit.defaultAccount })
+        notification(`🎉 task ${index} has been unlocked.`)
+        getTasks()
+        getBalance()
+      }
+    catch (error) {
+        notification(`${error}.`)
     
     } 
+
+  }
+
+  else if (e.target.dataset.action == "annul"){
+    const index = e.target.id
+    try {
+        const result = await contract.methods
+          .annulTask(index)
+          .send({from: kit.defaultAccount })
+        notification(`🎉 task ${index} has been unlocked.`)
+        getTasks()
+        getBalance()
+      }
+    catch (error) {
+        notification(`${error}.`)
+    
+    } 
+
   }
 })
 
