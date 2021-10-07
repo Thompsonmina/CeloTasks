@@ -69,14 +69,6 @@ contract Tasks{
         _;
     }
     
-    // define some events to update the UI
-    event TaskCompleted(
-        uint indexed taskid,
-        address indexed completer
-    );
-    
-    event StateChanged();
-    
     
     function _lockHasExpired(uint _id) private view returns (bool){
         /* checks whether the lock time has elapsed*/
@@ -91,7 +83,7 @@ contract Tasks{
         require(
             IERC.transferFrom(
                 msg.sender,
-                _owner,
+                address(this),
                 tasks[_id].lockCost
             ),
             "Could not disburse funds"
@@ -99,7 +91,6 @@ contract Tasks{
         tasks[_id].state = Locked;
         tasks[_id].lockStartTime = block.timestamp;
         tasks[_id].lockOwner = payable(msg.sender);
-        emit StateChanged();
     }
     
     function setBackToActive(uint _id) external onlyTaskOwner(_id) taskIsModifiable(_id){
@@ -110,11 +101,10 @@ contract Tasks{
             tasks[_id].state = Active;
             tasks[_id].lockStartTime = 0;
             tasks[_id].lockOwner = payable(address(0));
-            emit StateChanged();
         }else revert();
     }
     
-    function completeTask(uint _id) external onlyTaskOwner(_id) taskIsModifiable(_id){
+    function completeTask(uint _id) external payable onlyTaskOwner(_id) taskIsModifiable(_id){
         /* pay the account that locked the task for successful completion including lock money
             only locked tasks can be completed
         */
@@ -124,15 +114,13 @@ contract Tasks{
         // Pay the locked guy and emit an event
         require(tasks[_id].lockOwner != address(0));
         require(
-            IERC.transferFrom(
-                _owner,
+            IERC.transfer(
                 tasks[_id].lockOwner,
                 total
             ),
             "Could not disburse funds"
         );
         tasks[_id].state = Completed;
-        emit TaskCompleted(_id, tasks[_id].lockOwner);
         
     }
     
@@ -141,16 +129,13 @@ contract Tasks{
         
         // pay back bounty to the owner of the task
         require(
-            IERC.transferFrom(
-                _owner,
+            IERC.transfer(
                 tasks[_id].creator,
                 tasks[_id].bounty
             ),
             "Could not disburse funds"
         );
         tasks[_id].state = Annuled;
-        emit StateChanged();
-        
     }
     
     function addTask(
@@ -165,7 +150,7 @@ contract Tasks{
         require(
             IERC.transferFrom(
                 msg.sender,
-                _owner,
+                address(this),
                 _bounty
             ),
             "Could not disburse funds"
@@ -188,7 +173,6 @@ contract Tasks{
             Active
         );
         TasksLength++;
-        emit StateChanged();
     }
     
     
@@ -224,7 +208,6 @@ contract Tasks{
         task.lockCost,
         task.state
         );
-            
     }
     
     
@@ -233,8 +216,4 @@ contract Tasks{
     
         LockPercent = percent;
     }
-
-    
-    
-    
 }

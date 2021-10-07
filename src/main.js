@@ -122,7 +122,6 @@ const annuled = 3
             Unlock Task</a>` 
 
     let isowner = _task.owner === kit.defaultAccount                   
-  
   	return `
     <div class="card mb-4">
       <div class="card-body text-left p-4 position-relative">
@@ -190,6 +189,7 @@ const annuled = 3
     notificationOff()
 	})
 
+  // filter tasks based on different criteria
   document.querySelector("#filters").addEventListener("click", (e) => {
   let filteredtasks = tasks
   if (e.target.dataset.option == "ownedTasks"){
@@ -197,7 +197,7 @@ const annuled = 3
   }
   
   if (e.target.dataset.option == "lockedTasks"){
-    filteredtasks = filteredtasks.filter(t => t.locker == kit.defaultAccount && t.state == locked)
+    filteredtasks = filteredtasks.filter(t => t.locker == kit.defaultAccount)
   }
 
   renderTasks(filteredtasks)
@@ -206,6 +206,7 @@ const annuled = 3
 })
   const delay = ms => new Promise(res => setTimeout(res, ms));
 
+  // watch for the various valid actions
   document.querySelector("#listings").addEventListener("click", async (e) => {
   // lock button
   if(e.target.dataset.action == "lock") {
@@ -255,6 +256,13 @@ const annuled = 3
 
   else if (e.target.dataset.action == "unlock"){
     const index = e.target.id
+    // check for elapsed time period 
+    let timehaselapsed = tasks[index].startime + tasks[index].duration * 3600 <= Date.now() / 1000
+    if (!timehaselapsed){
+      notification("Can not unlock yet, lock period has not yet elapsed")
+      return
+    }
+
     try {
         const result = await contract.methods
           .setBackToActive(index)
