@@ -1,0 +1,21 @@
+<div class="card mb-4">
+      <div class="card-body text-left p-4 position-relative">
+        <!-- <div class="translate-middle-y position-absolute top-0"> -->    
+        ${identiconTemplate(_task.owner)}
+        <!-- </div> -->
+        <h5 class="card-title">Task Description</h5>
+        <p class="card-text mb-1">
+          ${_task.taskdesc}         
+        </p>
+        <h5 class="card-title "> Expected Deliverables</h5>
+        <p>${_task.proof} </p>
+        <p> Task Prize: ${new BigNumber(_task.prize).shiftedBy(-ERC20_DECIMALS).toFixed(2)}cUSD <br>Contact Info: ${_task.contact} 
+        <br> Minimum Lock Duration: ${_task.duration / 3600} hour(s)
+          ${isowner? ownerstatus: ""}
+        </p>
+        <div class="">
+        ${!isowner? buttons[_task.state]: ""}
+          ${isowner ? _task.state === 0? annulbtn: completebtn + unlocktask: ""}
+        </div>
+      </div>
+    </div>

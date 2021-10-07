@@ -7,12 +7,12 @@ import erc20Abi from "../contract/erc20.abi.json"
 
 const ERC20_DECIMALS = 18
 const cUSDContractAddress = "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1"
-const tasksContractAddress = "0x6A0D68Fc6A9830074B42c8C62a453320Ba198F1C"
+const tasksContractAddress = "0x6E8F940979df2CcA16866b5c570C3F02C95F52e4"
 
 let kit
 let contract
 let tasks = []
-let useraddress
+
 
 const active = 0
 const locked = 1
@@ -30,8 +30,7 @@ const annuled = 3
           kit = newKitFromWeb3(web3)
 
           const accounts = await kit.web3.eth.getAccounts()
-          console.log(accounts)
-          useraddress = kit.defaultAccount = accounts[0]
+          kit.defaultAccount = accounts[0]
 
           contract = new kit.web3.eth.Contract(tasksAbi, tasksContractAddress)
         }
@@ -85,20 +84,19 @@ const annuled = 3
         _tasks.push(_product)
       }
       tasks = await Promise.all(_tasks)
-      console.log(tasks)
-      renderTasks()
+      
+      renderTasks(tasks)
   }
 
+  // function filterTasks()
 
-
-  function renderTasks() {
+  function renderTasks(tasks) {
+    let notannuledtasks = tasks.filter(t => t.state != annuled)
   	document.getElementById("listings").innerHTML = ""
-  	tasks.forEach((_task) => {
-      console.log(_task)
+  	notannuledtasks.forEach((_task) => {
   		const newDiv = document.createElement("div")
   		newDiv.className = "col-md-6"
   		newDiv.innerHTML = taskTemplate(_task)
-      console.log(taskTemplate(_task), newDiv.innerHTML, "yeah")
   		document.getElementById("listings").appendChild(newDiv)
   	})
   }
@@ -123,8 +121,7 @@ const annuled = 3
     let unlocktask = `<a class="btn  btn-danger .unlockBtn" data-action="unlock" id="${_task.index}">
             Unlock Task</a>` 
 
-    let ownerstatus = `<br> Status: ${turnStateToString(_task.state)}`
-    let isowner = _task.owner === useraddress                   
+    let isowner = _task.owner === kit.defaultAccount                   
   
   	return `
     <div class="card mb-4">
@@ -138,13 +135,16 @@ const annuled = 3
         </p>
         <h5 class="card-title "> Expected Deliverables</h5>
         <p>${_task.proof} </p>
-        <p> Task Prize: ${new BigNumber(_task.prize).shiftedBy(-ERC20_DECIMALS).toFixed(2)}cUSD <br>Contact Info: ${_task.contact} 
-        <br> Minimum Lock Duration: ${_task.duration / 3600} hour(s)
-          ${isowner? ownerstatus: ""}
+        <p> Task Prize: ${new BigNumber(_task.prize).shiftedBy(-ERC20_DECIMALS).toFixed(2)} cUSD <br>Contact Info: ${_task.contact} 
+        <br>Lock Duration: ${_task.duration / 3600} hour(s)
+        <br><span class="badge ${_task.state == 1? "bg-danger":"bg-secondary"}">${turnStateToString(_task.state)}</span>
         </p>
+
         <div class="">
-        ${!isowner? buttons[_task.state]: ""}
-          ${isowner ? _task.state == 0? annulbtn: completebtn + unlocktask: ""}
+          ${!isowner ? _task.state == 0 ? buttons[_task.state]: "":""}
+
+          ${isowner ? _task.state == 0? annulbtn: "":""}
+          ${isowner ? _task.state == 1? completebtn + unlocktask: "":""}
         </div>
       </div>
     </div>
@@ -190,42 +190,26 @@ const annuled = 3
     notificationOff()
 	})
 
-  // document
-  // .querySelector("#newProductBtn")
-  // .addEventListener("click", () => {
-  //   const _task = {
+  document.querySelector("#filters").addEventListener("click", (e) => {
+  let filteredtasks = tasks
+  if (e.target.dataset.option == "ownedTasks"){
+    filteredtasks = filteredtasks.filter(t => t.owner == kit.defaultAccount)
+  }
+  
+  if (e.target.dataset.option == "lockedTasks"){
+    filteredtasks = filteredtasks.filter(t => t.locker == kit.defaultAccount && t.state == locked)
+  }
 
-  //     owner: 
-  //     locker: 
-  //     taskdesc:
-  //     proof: 
-  //     contact: ,
-  //     prize: 
-  //     duration: p[6],
-  //     startime: p[7]
-  //     lockcost: new BigNumber(p[8]),
-  //     state: p[9]
+  renderTasks(filteredtasks)
 
-  //     owner: "0x2EF48F32eB0AEB90778A2170a0558A941b72BFFb",
-  //     name: document.getElementById("newProductName").value,
-  //     image: document.getElementById("newImgUrl").value,
-  //     description: document.getElementById("newProductDescription").value,
-  //     location: document.getElementById("newLocation").value,
-  //     price: document.getElementById("newPrice").value,
-  //     sold: 0,
-  //     index: products.length,
-  //   }
-  //   products.push(_product)
-  //   notification(`🎉 You successfully added "${_product.name}".`)
-  //   renderProducts()
-  // })
+
+})
+  const delay = ms => new Promise(res => setTimeout(res, ms));
 
   document.querySelector("#listings").addEventListener("click", async (e) => {
   // lock button
-  console.log(e.target)
   if(e.target.dataset.action == "lock") {
     const index = e.target.id
-    console.log(index)
     notification("⌛ Waiting for payment approval...")
     try {
       await approve(tasks[index].lockcost)
@@ -239,9 +223,11 @@ const annuled = 3
         .lockTask(index)
         .send({from: kit.defaultAccount })
       notification(`🎉 task ${index} has been locked for ${tasks[index].duration / 3600} hours ".`)
-      notificationOff()
       getTasks()
       getBalance()
+
+      await delay(4000)
+        notificationOff()
     }
     catch (error) {
         notification(`${error}.`) 
@@ -250,15 +236,17 @@ const annuled = 3
 
   else if (e.target.dataset.action == "complete"){
     const index = e.target.id
-    console.log(index)
     try {
         const result = await contract.methods
           .completeTask(index)
           .send({from: kit.defaultAccount })
         notification(`🎉 task ${index} has been completed.`)
-        notificationOff()
         getTasks()
         getBalance()
+
+        await delay(4000)
+        notificationOff()
+
       }
     catch (error) {
         notification(`${error}.`)
@@ -272,8 +260,12 @@ const annuled = 3
           .setBackToActive(index)
           .send({from: kit.defaultAccount })
         notification(`🎉 task ${index} has been unlocked.`)
+        
         getTasks()
         getBalance()
+       await delay(4000)
+        notificationOff()
+
       }
     catch (error) {
         notification(`${error}.`)
@@ -288,9 +280,11 @@ const annuled = 3
         const result = await contract.methods
           .annulTask(index)
           .send({from: kit.defaultAccount })
-        notification(`🎉 task ${index} has been unlocked.`)
+        notification(`🎉 task ${index} has been annuled.`)
         getTasks()
         getBalance()
+       await delay(4000)
+        notificationOff()
       }
     catch (error) {
         notification(`${error}.`)
