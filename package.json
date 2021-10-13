@@ -1,5 +1,6 @@
 {
   "main": "index.js",
+  "description": "Celo Tasks is a decentralized application built on the the celo blockchain.",
   "dependencies": {
     "@celo/contractkit": "^1.0.2",
     "bignumber.js": "^9.0.1"

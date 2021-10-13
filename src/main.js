@@ -7,7 +7,8 @@ import erc20Abi from "../contract/erc20.abi.json"
 
 const ERC20_DECIMALS = 18
 const cUSDContractAddress = "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1"
-const tasksContractAddress = "0x6E8F940979df2CcA16866b5c570C3F02C95F52e4"
+// const tasksContractAddress = "0x6E8F940979df2CcA16866b5c570C3F02C95F52e4"
+const tasksContractAddress = "0x81fC34bF1Cc162b6d52f85fAC4Aa8cdEf9eFc82D"
 
 let kit
 let contract

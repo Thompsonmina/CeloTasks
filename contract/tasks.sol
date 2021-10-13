@@ -3,7 +3,6 @@
 pragma solidity >=0.7.0 <0.9.0;
 
 import "./interfaceAndLibs.sol";
-
 contract Tasks{
     address internal _owner;
     address internal cUsdTokenAddress = 0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1;
@@ -12,7 +11,7 @@ contract Tasks{
     
     // intial values
     uint internal TasksLength = 0;
-    uint16 internal LockPercent = 15;
+    uint16 internal LockPercent;
     
     // define task states
     uint8 internal Active = 0;
@@ -41,6 +40,7 @@ contract Tasks{
     // set owner when contract is deployed
     constructor(){
         _owner = msg.sender;
+        LockPercent = 15;
     }
     
     
@@ -56,6 +56,11 @@ contract Tasks{
     
     modifier notTaskOwner(uint _id){
         require(tasks[_id].creator != msg.sender);
+        _;
+    }
+
+    modifier taskExists(uint _id){
+        require(tasks[_id].creator != address(0), "This task does not exist");
         _;
     }
     
@@ -124,18 +129,18 @@ contract Tasks{
         
     }
     
-    function annulTask(uint _id) external onlyTaskOwner(_id) taskIsModifiable(_id) taskIsUnlocked(_id){
+    function annulTask(uint _id) external taskExists(_id) onlyTaskOwner(_id) taskIsModifiable(_id) taskIsUnlocked(_id){
         /* A task owner can choose to withdraw tasks that have no takers*/
-        
+        Task storage task = tasks[_id];
         // pay back bounty to the owner of the task
         require(
             IERC.transfer(
-                tasks[_id].creator,
-                tasks[_id].bounty
+                task.creator,
+                task.bounty
             ),
             "Could not disburse funds"
         );
-        tasks[_id].state = Annuled;
+        task.state = Annuled;
     }
     
     function addTask(
@@ -215,5 +220,17 @@ contract Tasks{
         /*allows the owner of the contract to modify the lock rate */
     
         LockPercent = percent;
+    }
+
+
+    // enable an admin transfer ownership of contract to another address
+    function revokeOwnership(address _address) external onlyOwner {
+        require(_address != address(0), "Owner cannot be Zero address");
+        _owner = _address;
+    }
+    
+    function getOwner() external view returns(address){
+        /* get the owner address of the contract */
+        return _owner;
     }
 }
