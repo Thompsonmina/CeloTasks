@@ -1,5 +1,5 @@
 # Celo Tasks
-Celo Tasks is a decentralized application built on the the celo blockchain. The basic idea of the DApp is to be a place where people can post verifiable tasks that other people can complete in order to get a bounty. It achieves this idea in a novel way by using locks
+Celo Tasks is a decentralized application built on the the celo blockchain written with solidity. The basic idea of the DApp is to be a place where people can post verifiable tasks that other people can complete in order to get a bounty. It achieves this idea in a novel way by using locks
 
 ## How it Works
 Basically we have two main types of users, those who post task along with the attached bounties and those that complete these tasks. Now a person posts a task by submitting relevant details about the task like what it is, what someone has to do to show that the task has been completed, how much bounty is attached to the task, a communications channel where a prospective task complete can use to communicate to the task owner and for how long a task gets to be locked for. On submission the attached bounty is paid into the contract.
